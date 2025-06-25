@@ -63,9 +63,61 @@ def check_formats(in_f, out_f):
         print_help()
         sys.exit()
 
+def read_msolve(f):
+    try:
+        with open(f, "r") as fd:
+            print("coucou de sat")
+    except FileNotFoundError:
+        print(f"File {f} not found")
+        sys.exit()
+    
+def read_hpXbred(f):
+    try:
+        with open(f, "r") as fd:
+            print("coucou de sat")
+    except FileNotFoundError:
+        print(f"File {f} not found")
+        sys.exit()
+
+def read_magma(f):
+    try:
+        with open(f, "r") as fd:
+            print("coucou de sat")
+    except FileNotFoundError:
+        print(f"File {f} not found")
+        sys.exit()
+
+def read_sage(f):
+    try:
+        with open(f, "r") as fd:
+            print("coucou de sat")
+    except FileNotFoundError:
+        print(f"File {f} not found")
+        sys.exit()
+
+def read_sat(f):
+    try:
+        with open(f, "r") as fd:
+            print("coucou de sat")
+    except FileNotFoundError:
+        print(f"File {f} not found")
+        sys.exit()
+     
+def read_in(f, format):
+    if format == "ms":
+        return read_msolve(f)
+    if format == "in":
+        return read_hpXbred(f)
+    if format == "magma":
+        return read_magma(f)
+    if format == "sobj":
+        return read_sage(f)
+    if format == "sat":
+        return read_sat(f)
 
 if __name__ == "__main__":
     in_f, out_f = parse_args()
     format_in, format_out = check_formats(in_f, out_f)
+    read_in(in_f, format_in)
     print(in_f, out_f)
     print(format_out, format_in)
