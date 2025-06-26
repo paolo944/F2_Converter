@@ -165,22 +165,20 @@ def read_sat(f):
                 print("File format .sat not correct on the first line.")
                 sys.exit()
 
-            # Récupération du nombre de variables
             numbers = re.findall(r'\d+', lines[0])
             if len(numbers) < 2:
                 print("SAT header must specify number of variables and clauses.")
                 sys.exit()
             nb_variables, nb_polys = int(numbers[0]), int(numbers[1])
 
-            # Création des variables comme chaînes
             variables = [str(i + 1) for i in range(nb_variables)]
             
             for line in lines[1:]:
-                if not line.strip().startswith("x"):
-                    print("Can only interpret ANF-style SAT formats (lines starting with x).")
+                if not line.strip().startswith("x") or not line.strip().endswith("0"):
+                    print("Can only interpret ANF-style SAT formats (lines starting with x and ends with 0).")
                     sys.exit()
 
-                tokens = line.strip().split()[1:]  # remove leading 'x'
+                tokens = line.strip().split()[1:-1]
                 terms = []
                 i = 0
                 while i < len(tokens):
@@ -195,11 +193,12 @@ def read_sat(f):
                     else:
                         terms.append(tokens[i])
                         i += 1
-
-                # Assemble the polynomial as a string
+                if "T" not in terms:
+                    terms.append("T")
+                else:
+                    terms.remove("T")
                 system.append(" + ".join(terms))
 
-        # Convert and return same format as others
         return convert_variables_from_sat(system, variables)
 
     except FileNotFoundError:
@@ -277,7 +276,11 @@ def write_sat(f, system, variables):
                         poly_str += f" .2 {a} {b}"
                     else:
                         poly_str += f" {litteral}"
-                fd.write(f"{poly_str}\n")
+                if "T" not in poly_str:
+                    poly_str += " T"
+                else:
+                    poly_str = poly_str[:-2]
+                fd.write(f"{poly_str} 0\n")
     except:
         print(f"Error opening or writing file {f}.")
         sys.exit()
