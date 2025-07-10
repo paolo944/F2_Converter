@@ -45,7 +45,7 @@ def parse_args():
     return (params["in"], params["out"])
 
 def check_formats(in_f, out_f):
-    accepted_formats = ["ms", "in", "magma", "sobj", "sat"]
+    accepted_formats = ["ms", "in", "magma", "sobj", "sat", "anf"]
     try:
         _, format_in = in_f.split(".", 1)
         if format_in not in accepted_formats:
@@ -214,7 +214,7 @@ def read_in(f, format):
         return read_magma(f)
     if format == "sobj":
         return read_sage(f)
-    if format == "sat":
+    if format == "sat" or format == "anf":
         return read_sat(f)
 
 def write_msolve(f, system, variables):
@@ -294,7 +294,7 @@ def write_out(f, format, system, variables):
         return write_magma(f, system, variables)
     if format == "sobj":
         return write_sage(f, system, variables)
-    if format == "sat":
+    if format == "sat" or format == "anf":
         return write_sat(f, system, variables)
 
 if __name__ == "__main__":
