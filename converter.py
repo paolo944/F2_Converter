@@ -35,9 +35,9 @@ def parse_args():
         extra = received_keys - expected_keys
 
         if missing:
-            print(f"Missing parameters: {', '.join(missing)}")
+            print("Missing parameters: {}".format(', '.join(missing)))
         if extra:
-            print(f"Not recongnized parameters: {', '.join(extra)}")
+            print("Not recongnized parameters: {}".format(', '.join(extra)))
         print()
         print_help()
         sys.exit()
@@ -49,12 +49,12 @@ def check_formats(in_f, out_f):
     try:
         _, format_in = in_f.split(".", 1)
         if format_in not in accepted_formats:
-            print(f"format {format_in} is not supported")
+            print("format {} is not supported".format(format_in))
             print_help()
             sys.exit()
         _, format_out = out_f.split(".", 1)
         if format_out not in accepted_formats:
-            print(f"format {format_out} is not supported")
+            print("format {} is not supported".format(format_out))
             print_help()
             sys.exit()
         return (format_in, format_out)
@@ -73,7 +73,8 @@ def convert_variables_to_sat(system, variables):
             new_literal = re.sub(r'\b1\b', 'T', literal)
             
             for old_var, new_var in zip(variables, variables2):
-                new_literal = re.sub(rf'\b{re.escape(old_var)}\b', new_var, new_literal)
+                pattern = r'\b{}\b'.format(re.escape(old_var))
+                new_literal = re.sub(pattern, new_var, new_literal)
             
             new_poly.append(new_literal)
         system2.append(new_poly)
@@ -87,7 +88,7 @@ def convert_variables_from_sat(system, variables):
 
     for poly_str in system:
         for old_var, new_var in var_map.items():
-            poly_str = re.sub(rf'\b{re.escape(old_var)}\b', new_var, poly_str)
+            poly_str = re.sub(r'\b' + re.escape(old_var) + r'\b', new_var, poly_str)
         poly_str = re.sub(r'\bT\b', '1', poly_str)
         poly_terms = [term.strip() for term in poly_str.split('+') if term.strip()]
         system2.append(poly_terms)
@@ -111,7 +112,7 @@ def read_msolve(f):
 
         return (system, variables)
     except FileNotFoundError:
-        print(f"File {f} not found")
+        print("File {} not found".format(f))
         sys.exit()
     
 def read_hpXbred(f):
@@ -129,7 +130,7 @@ def read_hpXbred(f):
                 system.append(poly)
         return (system, variables)
     except FileNotFoundError:
-        print(f"File {f} not found")
+        print("File {} not found".format(f))
         sys.exit()
 
 def read_magma(f):
@@ -151,7 +152,7 @@ def read_magma(f):
 
         return (system, variables)
     except FileNotFoundError:
-        print(f"File {f} not found")
+        print("File {} not found".format(f))
         sys.exit()
 
 def read_sat(f):
@@ -172,37 +173,47 @@ def read_sat(f):
             nb_variables, nb_polys = int(numbers[0]), int(numbers[1])
 
             variables = [str(i + 1) for i in range(nb_variables)]
-            
+
             for line in lines[1:]:
-                if not line.strip().startswith("x") or not line.strip().endswith("0"):
+                stripped = line.strip()
+                if not (stripped.startswith("x") and stripped.endswith("0")):
                     print("Can only interpret ANF-style SAT formats (lines starting with x and ends with 0).")
                     sys.exit()
 
-                tokens = line.strip().split()[1:-1]
+                tokens = stripped.split()[1:-1]
                 terms = []
                 i = 0
                 while i < len(tokens):
-                    if tokens[i] == '.2':
-                        if i + 2 < len(tokens):
-                            a, b = tokens[i+1], tokens[i+2]
-                            terms.append(f"{a}*{b}")
-                            i += 3
-                        else:
-                            print("Error in .2 format: not enough arguments.")
+                    token = tokens[i]
+                    if token.startswith('.'):
+                        try:
+                            degree = int(token[1:])
+                        except ValueError:
+                            print("Invalid degree marker '{}'.".format(token))
                             sys.exit()
+
+                        if i + degree >= len(tokens):
+                            print("Error in .{} format: not enough arguments.".format(degree))
+                            sys.exit()
+
+                        monomial = "*".join(tokens[i+1:i+1+degree])
+                        terms.append(monomial)
+                        i += degree + 1
                     else:
-                        terms.append(tokens[i])
+                        terms.append(token)
                         i += 1
+
                 if "T" not in terms:
                     terms.append("T")
                 else:
                     terms.remove("T")
+
                 system.append(" + ".join(terms))
 
         return convert_variables_from_sat(system, variables)
 
     except FileNotFoundError:
-        print(f"File {f} not found")
+        print("File {} not found".format(f))
         sys.exit()
 
 def read_in(f, format):
@@ -220,69 +231,71 @@ def read_in(f, format):
 def write_msolve(f, system, variables):
     try:
         with open(f, "w") as fd:
-            fd.write(f"{",".join(variables)}\n2\n")
+            fd.write(",".join(variables) + "\n2\n")
             for poly in system[:-1]:
-                fd.write(f"{"+".join(poly)},\n")
-            fd.write(f"{"+".join(system[-1])}")
+                fd.write("+".join(poly) + ",\n")
+            fd.write("+".join(system[-1]))
     except:
-        print(f"Error opening or writing file {f}.")
+        print("Error opening or writing file {}.".format(f))
         sys.exit()
 
 def write_hpXbred(f, system, variables):
     try:
         with open(f, "w") as fd:
-            fd.write(f"{",".join(variables)}\n")
+            fd.write(",".join(variables) + "\n")
             for poly in system[:-1]:
                 line = "+".join(poly)
                 if "^2" in line:
                     continue
-                fd.write(f"{line}\n")
+                fd.write(line + "\n")
             line = "+".join(system[-1])
             if "^2" in line:
                 return
-            fd.write(f"{line}")
+            fd.write(line)
     except:
-        print(f"Error opening or writing file {f}.")
+        print("Error opening or writing file {}.".format(f))
         sys.exit()
 
 def write_magma(f, system, variables):
     try:
         with open(f, "w") as fd:
             fd.write("F := GaloisField(2);\n")
-            fd.write(f"Field<{",".join(variables)}> := BooleanPolynomialRing({len(variables)}, \"grevlex\");\n")
+            vars_joined = ",".join(variables)
+            fd.write("Field<{}> := BooleanPolynomialRing({}, \"grevlex\");\n".format(vars_joined, len(variables)))
             poly_str = "["
             for i in range(len(system)):
-                line = f"f{i} := {"+".join(system[i])};\n"
+                expr = "+".join(system[i])
+                line = "f{} := {};\n".format(i, expr)
                 fd.write(line)
-                poly_str += f"f{i+1},"
+                poly_str += "f{},".format(i + 1)
             s = list(poly_str)
             s[-1] = "]"
             poly_str = "".join(s)            
-            fd.write(f"PolynomialSystem := {poly_str};")
+            fd.write("PolynomialSystem := {};".format(poly_str))
     except:
-        print(f"Error opening or writing file {f}.")
+        print("Error opening or writing file {}.".format(f))
         sys.exit()
 
 def write_sat(f, system, variables):
     try:
         with open(f, "w") as fd:
-            fd.write(f"p cnf {len(variables)} {len(system)}\n")
+            fd.write("p cnf {} {}\n".format(len(variables), len(system)))
             system, variables = convert_variables_to_sat(system, variables)
             for poly in system:
                 poly_str = "x"
                 for litteral in poly:
                     if "*" in litteral:
                         a, b = litteral.split("*")
-                        poly_str += f" .2 {a} {b}"
+                        poly_str += " .2 {} {}".format(a, b)
                     else:
-                        poly_str += f" {litteral}"
+                        poly_str += " {}".format(litteral)
                 if "T" not in poly_str:
                     poly_str += " T"
                 else:
                     poly_str = poly_str[:-2]
-                fd.write(f"{poly_str} 0\n")
+                fd.write("{} 0\n".format(poly_str))
     except:
-        print(f"Error opening or writing file {f}.")
+        print("Error opening or writing file {}.".format(f))
         sys.exit()
 
 def write_out(f, format, system, variables):
